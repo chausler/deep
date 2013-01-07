@@ -109,7 +109,7 @@ class TADBN(object):
             # Construct an RBM that shared weights with this layer
             rbm_layer = TARBM(numpy_rng=numpy_rng,
                             theano_rng=theano_rng,
-                            input=layer_input,
+                            input_=layer_input,
                             input_history=layer_input_hist,
                             n_visible=input_size,
                             n_hidden=hidden_layers_sizes[i],
@@ -349,6 +349,9 @@ class TADBN(object):
         #########################
         # PRETRAINING THE MODEL #
         #########################
+        if not isinstance(train_set_x,
+                          theano.tensor.sharedvar.TensorSharedVariable):
+            train_set_x = theano.shared(train_set_x)
 
         batchdataindex = range(train_set_x.get_value(borrow=True).shape[0])
         n_train_batches = len(batchdataindex) / batch_size
@@ -585,3 +588,28 @@ class TADBN(object):
             for d in range(self.delay):
                 self.rbm_layers[i].plot_weights(fig_name, self.n_ins,
                                         with_tree=False, delay=d + 1)
+
+    def generate(self, data, data_idx=None, n_samples=1, n_gibbs=30):
+        # TODO: Currently only works for 1 layer DBNs.
+        # need to propup and sample at top layer
+        if data_idx == None:
+            data_idx = np.array([self.delay])
+
+        orig_data = np.asarray(data[data_idx], dtype=theano.config.floatX)
+        hist_idx = np.array([data_idx - n for n in xrange(0, self.delay)]).T
+        hist_idx = hist_idx.ravel()
+        hist_data = np.asarray(
+                             data[hist_idx].reshape(
+                                 (len(data_idx),
+                                  self.delay * np.prod(self.n_ins))),
+                                     dtype=theano.config.floatX)
+
+        generated_series = self.rbm_layers[0].generate(orig_data, hist_data,
+                                    n_samples, n_gibbs)
+
+        generated_series = np.concatenate(
+                            (hist_data.reshape(len(data_idx),
+                                self.delay,
+                                np.prod(self.n_ins))[:, ::-1, :],
+                                       generated_series), axis=1)
+        return generated_series
