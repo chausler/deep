@@ -12,7 +12,6 @@ test_data = np.array([np.sin(np.arange(400) * 0.2),
 
 
 batchdata = numpy.asarray(test_data, dtype=theano.config.floatX)
-
 delay = 5
 
 numpy_rng = numpy.random.RandomState(123)
@@ -23,7 +22,7 @@ dbn_tadbn = TADBN(numpy_rng=numpy_rng, n_ins=[n_dim],
           sparse=0.0, delay=delay, learning_rate=0.01)
 
 dbn_tadbn.pretrain(batchdata, plot_interval=5, static_epochs=1,
-                   save_interval=10, epochs=30, all_epochs=60,
+                   save_interval=10, ae_epochs=1, all_epochs=2,
                    batch_size=5)
 
 generated_series = dbn_tadbn.generate(batchdata, n_samples=40)

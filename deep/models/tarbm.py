@@ -12,6 +12,7 @@ import theano.tensor as T
 from theano.printing import Print
 from theano.tensor.shared_randomstreams import RandomStreams
 from utils.plotting import tile_raster_images
+floatX = theano.config.floatX
 
 
 class TARBM(object):
@@ -70,9 +71,8 @@ class TARBM(object):
         if W is None:
             # the output of uniform if converted using asarray to dtype
             # theano.config.floatX so that the code is runable on GPU
-            initial_W = np.asarray(0.01 * numpy_rng.randn(n_visible,
-                                                          n_hidden),
-                                    dtype=theano.config.floatX)
+            initial_W = np.asarray(0.01
+                        * numpy_rng.randn(n_visible, n_hidden), dtype=floatX)
             # theano shared variables for weights and biases
             W = theano.shared(value=initial_W, name='W')
 
@@ -81,12 +81,12 @@ class TARBM(object):
         if hbias is None:
             # create shared variable for hidden units bias
             hbias = theano.shared(value=np.zeros(n_hidden,
-                                dtype=theano.config.floatX), name='hbias')
+                                dtype=floatX), name='hbias')
 
         if vbias is None:
             # create shared variable for visible units bias
             vbias = theano.shared(value=np.zeros(n_visible,
-                                dtype=theano.config.floatX), name='vbias')
+                                dtype=floatX), name='vbias')
 
         # initialize input layer for standalone CRBM or layer0 of CDBN
         self.input = input_
@@ -120,13 +120,12 @@ class TARBM(object):
             if self.delay > 0:
                 initial_A = np.asarray(0.01 * np.random.randn(self.delay,
                                             self.n_hidden, self.n_hidden),
-                                            dtype=theano.config.floatX)
+                                            dtype=floatX)
             else:
                 initial_A = None
             # theano shared variables for weights and biases
             A = theano.shared(value=initial_A, name='A')
         self.A = A
-
 
     def free_energy(self, vis, v_history):
         """ Function to compute the free energy of data  presented to the model
@@ -139,7 +138,7 @@ class TARBM(object):
 
         Returns: the free energy
         """
-        static = self.delay > 0 
+        static = self.delay > 0
         wx_b, _ = self.propup(vis, v_history, static=static)
         ax_b = self.vbias
 
@@ -163,7 +162,7 @@ class TARBM(object):
                 layers, otherwise use the mean field activation
 
         Returns:
-            Note that we return also the pre-sigmoid activation of the layer. As
+            Note that we return also the pre-sigmoid activation of the layer.As
             it will turn out later, due to how Theano deals with optimizations,
             this symbolic variable will be needed to write down a more
             stable computational graph (see details in the reconstruction cost
@@ -172,17 +171,15 @@ class TARBM(object):
         if not delay:
             delay = self.delay
         if (delay > 0) and (not static):
-            #divisor = T.cast(2, dtype=theano.config.floatX)
             pre_sigmoid_activation = T.dot(vis, self.W)
             K = np.prod(self.n_visible)
             for i in range(delay):
                 [_, hid_act] = self.propup(v_history[:, i * K:(i + 1) * K],
                                           static=True)
-                #hid_act = Print('hid_act')(hid_act)
                 if past_sample:
                     hid_act = self.theano_rng.binomial(size=hid_act.shape, n=1,
                                              p=hid_act,
-                                             dtype=theano.config.floatX)
+                                             dtype=floatX)
                 pre_sigmoid_activation += T.dot(hid_act, self.A[i])
             pre_sigmoid_activation = pre_sigmoid_activation + self.hbias
         else:
@@ -200,7 +197,7 @@ class TARBM(object):
             past_sample: if True, take a binomial sample from past hidden
                 layers, otherwise use the mean field activation
         Returns:
-            a list containing the pre-sigmoid, mean field and binomial sample 
+            a list containing the pre-sigmoid, mean field and binomial sample
             for the hidden layer given the input
          """
 
@@ -213,7 +210,7 @@ class TARBM(object):
         # for the GPU we need to specify to return the dtype floatX
         h1_sample = self.theano_rng.binomial(size=h1_mean.shape, n=1,
                                              p=h1_mean,
-                                             dtype=theano.config.floatX)
+                                             dtype=floatX)
         return [pre_sigmoid_h1, h1_mean, h1_sample]
 
     def propdown(self, hid):
@@ -243,7 +240,7 @@ class TARBM(object):
         v1_sig = T.nnet.sigmoid(v1_mean)
         v1_sample = self.theano_rng.binomial(size=v1_mean.shape,
                                              n=1, p=v1_sig,
-                                            dtype=theano.config.floatX)
+                                            dtype=floatX)
         #TODO do we want mean or pre sigmoid?
         return v1_mean, v1_sample
 
@@ -282,7 +279,7 @@ class TARBM(object):
             past_sample: if True, take a binomial sample from past hidden
                 layers, otherwise use the mean field activation
         Returns:
-            a list containing 
+            a list containing
             pre_sigmoid_h1, h1_mean, h1_sample, v1_mean, v1_mean
             after one gibbs sample
         """
@@ -372,17 +369,16 @@ class TARBM(object):
             if param == self.A:
                 # slow down autoregressive updates
                 updates[param] = param - gparam * 0.01 * \
-                                  T.cast(self.lr, dtype=theano.config.floatX)
+                                  T.cast(self.lr, dtype=floatX)
             # enforce sparsity on hidden bias if a sparse target is set
             elif (self.sparse != 0 and param == self.hbias):
                 updates[param] = param + (
-                            (T.cast(self.sparse, dtype=theano.config.floatX)
+                            (T.cast(self.sparse, dtype=floatX)
                                         - ph_mean.mean(0))
-                        * T.cast(self.lr * 0.1, dtype=theano.config.floatX))
+                        * T.cast(self.lr * 0.1, dtype=floatX))
             else:
                 updates[param] = param - gparam * \
-                            T.cast(self.lr, dtype=theano.config.floatX)
-
+                            T.cast(self.lr, dtype=floatX)
 
         # reconstruction error is a better proxy for CD
         #monitoring_cost = self.get_reconstruction_cost(updates, nv_means[-1])
@@ -499,7 +495,7 @@ class TARBM(object):
         for param, gparam in zip(prms, gparams):
             #gparam = Print('gparam',attrs=['mean(axis=0)'])(gparam)
             updates[param] = param - T.cast(self.lr,
-                                        dtype=theano.config.floatX) * gparam
+                                        dtype=floatX) * gparam
         return cost, updates
 
     def generate(self, orig_data, orig_history, n_samples, n_gibbs=30):
@@ -751,4 +747,3 @@ class TARBM(object):
         f = open(fname + '_ev_all_units.pkl', 'wb')
         cPickle.dump(all_units, f, protocol=cPickle.HIGHEST_PROTOCOL)
         f.close()
-
