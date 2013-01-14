@@ -362,7 +362,8 @@ class TARBM(object):
             prms = self.params
 
         # We must not compute the gradient through the gibbs sampling
-        gparams = T.grad(cost, prms, consider_constant=[chain_end])
+        gparams = T.grad(cost, prms, consider_constant=[chain_end],
+                         disconnected_inputs='warn')
 
         # constructs the update dictionary
         for gparam, param in zip(gparams, prms):
