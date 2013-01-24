@@ -1,6 +1,6 @@
 import pylab as plt
-
-
+import sys
+sys.path.append('..')
 from models.tadbn import TADBN
 import numpy
 import numpy as np
