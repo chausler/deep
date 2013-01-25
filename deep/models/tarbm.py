@@ -3,7 +3,8 @@
 Adapted from Graham Taylor's CRBM implementation
 https://gist.github.com/2505670
 """
-
+import sys
+sys.path.append('..')
 import numpy as np
 import matplotlib.pyplot as plt
 import cPickle
