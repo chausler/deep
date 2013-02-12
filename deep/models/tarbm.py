@@ -140,14 +140,17 @@ class TARBM(object):
         Returns: the free energy
         """
         static = self.delay > 0
-        wx_b, _ = self.propup(vis, v_history, static=static)
+        wx_b, _ = self._propup(vis, v_history, static=static)
         ax_b = self.vbias
 
         visible_term = T.sum(0.5 * T.sqr(vis - ax_b), axis=1)
         hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
         return visible_term - hidden_term
 
-    def propup(self, vis, v_history=None, static=False, delay=None,
+    def propup(self, static=False):
+        return self._propup(self.input, self.input_history, static)
+
+    def _propup(self, vis, v_history=None, static=False, delay=None,
                past_sample=False):
         """ This function propagates the visible units activation upwards to
         the hidden units
@@ -175,7 +178,7 @@ class TARBM(object):
             pre_sigmoid_activation = T.dot(vis, self.W)
             K = np.prod(self.n_visible)
             for i in range(delay):
-                [_, hid_act] = self.propup(v_history[:, i * K:(i + 1) * K],
+                [_, hid_act] = self._propup(v_history[:, i * K:(i + 1) * K],
                                           static=True)
                 if past_sample:
                     hid_act = self.theano_rng.binomial(size=hid_act.shape, n=1,
@@ -202,7 +205,7 @@ class TARBM(object):
             for the hidden layer given the input
          """
 
-        pre_sigmoid_h1, h1_mean = self.propup(vis, v_history,
+        pre_sigmoid_h1, h1_mean = self._propup(vis, v_history,
                                               past_sample=past_sample)
 
         # get a sample of the hiddens given their activation
@@ -433,7 +436,7 @@ class TARBM(object):
         curr_hid = None
         K = np.prod(self.n_visible)
         for d in range(delay + 1):
-            _, hist_hid = self.propup(self.input_history[:, d * K:(d + 1) * K],
+            _, hist_hid = self._propup(self.input_history[:, d * K:(d + 1) * K],
                                       static=True)
             if not curr_hid:
                 curr_hid = T.dot(hist_hid, self.A[d])

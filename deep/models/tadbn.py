@@ -77,7 +77,7 @@ class TADBN(object):
 
         # allocate symbolic variables for the data
         self.x = T.matrix('x')  # the data is presented as rasterized images
-        self.x_hist = T.matrix('x_history')  # presented as rasterized images
+        self.x_hist = T.matrix('x_hist')  # presented as rasterized images
         self.y = T.ivector('y')  # the labels are presented as 1D vector
         self.lr = T.dscalar('lr')  # learning rate
         self.delay = delay  # model delay
@@ -126,40 +126,62 @@ class TADBN(object):
             cPickle.dump(self, f, protocol=cPickle.HIGHEST_PROTOCOL)
             f.close()
 
-    def propup(self, data, layer=0, static=True):
+    def propup(self, data, layer=0, static=False):
         """
+        propogate the activity through layer 0 to the hidden layer and return
+        an array of [2, samples, dimensions]
+        where the first 2 dimensions are
+        [pre_sigmoid_activation, T.nnet.sigmoid(pre_sigmoid_activation)]
+        so far only works for the first rbm layer
+        """
+        if not isinstance(data,
+                          theano.tensor.sharedvar.TensorSharedVariable):
+            data = theano.shared(data)
 
-        """
         # allocate symbolic variables for the data
         index = T.lvector()    # index to a [mini]batch
         index_hist = T.lvector()  # index to history
-        lr = T.dscalar()
         rbm = self.rbm_layers[layer]
         # get the cost and the gradient corresponding to one step of CD-15
-        [pre_sig, post_sig] = rbm.propup(rbm.input, rbm.input_history)
+        [pre_sig, post_sig] = rbm.propup(static)
 
         #################################
         #     Training the CRBM         #
         #################################
         if static:
             # the purpose of train_crbm is solely to update the CRBM parameters
-            fn = theano.function([index],
+            fn = theano.function([],
                                 outputs=[pre_sig, post_sig],
-                                givens={self.x: data[index]},
+                                givens={self.x: data},
                                 name='propup_tarbm_static')
+            return np.array(fn())
 
-#        else:
-#            # the purpose of train_crbm is solely to update the CRBM parameters
-#            fn = theano.function([index, index_hist, lr],
-#                                outputs=cost,
-#                                updates=updates,
-#                                givens={self.x: train_set_x[index],\
-#                                self.x_hist: train_set_x[index_hist].reshape((
-#                                    batch_size,
-#                                    self.delay * np.prod(self.n_ins))),
-#                                        self.lr: lr},
-#                                name='train_tarbm')
-        return fn
+        else:
+            # indexing is slightly complicated
+            # build a linear index to the starting frames for this batch
+            # (i.e. time t) gives a batch_size length array for data
+            data_idx = np.arange(self.delay, 
+                                 data.get_value(borrow=True).shape[0])
+
+            # now build a linear index to the frames at each delay tap
+            # (i.e. time t-1 to t-delay)
+            # gives a batch_size x delay array of indices for history
+            hist_idx = np.array([data_idx - n for n in
+                                 xrange(1, self.delay + 1)]).T
+
+            # the purpose of train_crbm is solely to update the CRBM parameters
+            fn = theano.function([index, index_hist],
+                                outputs=[pre_sig, post_sig],
+                                givens={self.x: data[index],\
+                                self.x_hist: data[index_hist].reshape((
+                                    len(data_idx),
+                                    self.delay * np.prod(self.n_ins)))},
+                                name='train_tarbm')
+
+            return np.array(fn(data_idx, hist_idx.ravel()))
+
+
+
 
     def pretraining_functions(self, train_set_x, batch_size, k, layer=0,
                     static=False, with_W=False, binary=False):
