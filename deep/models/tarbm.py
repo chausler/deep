@@ -147,8 +147,8 @@ class TARBM(object):
         hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
         return visible_term - hidden_term
 
-    def propup(self, static=False, delay=None):
-        return self._propup(self.input, self.input_history, static, delay)
+    def propup(self, static=False):
+        return self._propup(self.input, self.input_history, static)
 
     def _propup(self, vis, v_history=None, static=False, delay=None,
                past_sample=False):
