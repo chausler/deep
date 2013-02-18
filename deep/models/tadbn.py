@@ -535,20 +535,22 @@ class TADBN(object):
             train_set_x = theano.shared(train_set_x)
 
         # Pre-train layer-wise
-        orig_lr = lr
         for layer in xrange(self.n_layers):
-            self._do_static_training(layer, train_set_x, static_epochs, lr, k,
+            if static_epochs > 0:
+                self._do_static_training(layer, train_set_x, static_epochs, lr, k,
                             batch_size, binary, dbn_filename, fig_filename,
                             save_interval, plot_interval)
 
             permindex, n_train_batches = self._get_temporal_batches(seqlen,
                             train_set_x.get_value(borrow=True).shape[0],
                             batch_size)
-            self._do_ae_training(permindex, n_train_batches, layer,
+            if ae_epochs > 0:
+                self._do_ae_training(permindex, n_train_batches, layer,
                             train_set_x, ae_epochs, lr,
                             batch_size, binary, dbn_filename, fig_filename,
                             save_interval, plot_interval)
-            self._do_all_training(permindex, n_train_batches, layer,
+            if all_epochs > 0:
+                self._do_all_training(permindex, n_train_batches, layer,
                             train_set_x, all_epochs, lr, k,
                             batch_size, binary, with_W,
                             dbn_filename, fig_filename,
