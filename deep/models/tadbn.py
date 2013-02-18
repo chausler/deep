@@ -142,13 +142,14 @@ class TADBN(object):
         index = T.lvector()    # index to a [mini]batch
         index_hist = T.lvector()  # index to history
         rbm = self.rbm_layers[layer]
-        # get the cost and the gradient corresponding to one step of CD-15
-        [pre_sig, post_sig] = rbm.propup(static)
 
         #################################
         #     Training the CRBM         #
         #################################
         if static:
+            # get the cost and the gradient corresponding to one step of CD-15
+            [pre_sig, post_sig] = rbm.propup(static, 0)
+
             # the purpose of train_crbm is solely to update the CRBM parameters
             fn = theano.function([],
                                 outputs=[pre_sig, post_sig],
