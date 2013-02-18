@@ -302,7 +302,7 @@ class TADBN(object):
         """
         last_error = np.array(last_error).mean()
         if (error < last_error) and (lr < 1.):
-            lr = lr * 1.1
+            lr = lr * 1.01
             print 'growing learning rate to ', lr
         elif error >= last_error and (lr > 0.):
             lr = lr * 0.8
