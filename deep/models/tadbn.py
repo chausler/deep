@@ -587,14 +587,16 @@ class TADBN(object):
             data_idx = np.array([self.delay])
 
         orig_data = np.asarray(data[data_idx], dtype=theano.config.floatX)
-        hist_idx = np.array([data_idx - n for n in xrange(0, self.delay)]).T
-        hist_idx = hist_idx.ravel()
-        hist_data = np.asarray(
-                             data[hist_idx].reshape(
-                                 (len(data_idx),
-                                  self.delay * np.prod(self.n_ins))),
-                                     dtype=theano.config.floatX)
-
+        if self.delay > 0:
+            hist_idx = np.array([data_idx - n for n in xrange(0, self.delay)]).T
+            hist_idx = hist_idx.ravel()
+            hist_data = np.asarray(
+                                 data[hist_idx].reshape(
+                                     (len(data_idx),
+                                      self.delay * np.prod(self.n_ins))),
+                                         dtype=theano.config.floatX)
+        else:
+            hist_data = None
         generated_series = self.rbm_layers[0].generate(orig_data, hist_data,
                                     n_samples, n_gibbs)
 

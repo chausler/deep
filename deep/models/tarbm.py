@@ -356,7 +356,7 @@ class TARBM(object):
                T.mean(self.free_energy(chain_end, self.input_history))
 
         # if static or no delay, ignore temporal weights
-        if static and tmp_delay > 0:
+        if static:
             prms = [self.params[0], self.params[2], self.params[3]]
         # sometimes we don't want change what we learnt in static pretraining,
         # so ignore the vis bias and W weights
@@ -371,7 +371,7 @@ class TARBM(object):
 
         # constructs the update dictionary
         for gparam, param in zip(gparams, prms):
-            if param == self.A:
+            if param == self.A and self.A is not None:
                 # slow down autoregressive updates
                 updates[param] = param - gparam * 0.01 * \
                                   T.cast(self.lr, dtype=floatX)
