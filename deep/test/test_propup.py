@@ -26,5 +26,6 @@ up = dbn_tadbn.propup(batchdata, static=False)
 
 
 up = np.array(up)
-print up.shape
+print up.shape, batchdata.shape
+
 

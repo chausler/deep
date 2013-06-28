@@ -9,8 +9,6 @@ import theano
 
 test_data = np.array([np.sin(np.arange(400) * 0.2),
                       np.sin(np.arange(400) * 0.4)]).T
-
-
 batchdata = numpy.asarray(test_data, dtype=theano.config.floatX)
 delay = 20
 
